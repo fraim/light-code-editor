@@ -11,8 +11,8 @@
       <div class="d-flex">
         <form class="me-3">
           <themed-select
-            :value="currentLanguage"
             :options="options"
+            :value="currentLanguage"
             @change="changeLanguage">
           </themed-select>
         </form>
@@ -53,6 +53,7 @@ export default {
         {value: 'css', label: 'CSS'},
         {value: 'json', label: 'JSON'},
         {value: 'xml', label: 'XML'},
+        {value: 'python', label: 'Python'},
       ]
     }
   },

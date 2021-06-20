@@ -1,50 +1,68 @@
 <template>
   <div class="editor-container d-flex flex-column">
     <div id="editor" ref="editorRef"></div>
-    <div v-if="language === 'html'" ref="html-preview">
-
-    </div>
   </div>
 </template>
 
 <script>
-import {ref, onMounted, watchEffect, computed} from 'vue'
-import {useStore} from 'vuex'
-import {init, changeTheme, changeLanguage} from '@/utils/monacoEditor'
+import {mapActions, mapGetters} from 'vuex'
+import {editorInstance, initEditor} from '@/utils/monacoEditor'
+import {socket} from '@/utils/socket'
 
 export default {
   name: 'Editor',
-  setup() {
-    const store = useStore()
-    const editorRef = ref(null)
-    const standaloneCodeEditor = ref()
-    const standaloneCodeEditorValue = ref()
-
-    const theme = computed(() => store.getters.currentTheme)
-    const language = computed(() => store.getters.currentLanguage)
-
-    watchEffect(() => {
-      changeTheme(theme.value)
-      if (standaloneCodeEditor.value) {
-        changeLanguage(standaloneCodeEditor.value.getModel(), language.value)
+  data() {
+    return {
+      isAdmin: false,
+    }
+  },
+  computed: mapGetters(['currentTheme', 'currentLanguage', 'codeEditorInstance']),
+  methods: {
+    ...mapActions(['setCodeEditorInstance', 'changeLanguage']),
+  },
+  mounted() {
+    socket.on('connected', () => {
+      if(this.isAdmin === true) {
+        editorInstance.updateOptions({ readOnly: false })
+        socket.emit('filedata', {
+          value: editorInstance.getValue(),
+          language: this.currentLanguage,
+        })
       }
     })
-    onMounted(() => standaloneCodeEditor.value = init({
-      container: editorRef.value,
-      language: language.value,
-      theme: theme.value,
-      onDidChangeModelContent: function () {
-        standaloneCodeEditorValue.value = this.getValue().trim()
-      }
-    }))
 
-    return {
-      theme,
-      language,
-      editorRef,
-      standaloneCodeEditor,
-      standaloneCodeEditorValue,
-    }
+    socket.on('users', users => {
+      if(users.length === 1) {
+        this.isAdmin = true
+      }
+    })
+
+    socket.on('admin', () => {
+      this.isAdmin = true
+      editorInstance.updateOptions({ readOnly: false })
+      editorInstance.onDidChangeModelContent(e => socket.emit('code changing', e))
+    })
+
+    socket.on('resetdata', data => {
+      editorInstance.setValue(data)
+      editorInstance.updateOptions({ readOnly: false })
+    })
+
+    socket.on('code changing', data => {
+      editorInstance.getModel().applyEdits(data.changes)
+    })
+
+    socket.on('language changing', language => {
+      if(!this.isAdmin) {
+        this.changeLanguage(language)
+      }
+    })
+
+    initEditor({
+      container: this.$refs.editorRef,
+      language: this.currentLanguage,
+      theme: this.currentTheme,
+    })
   },
 }
 </script>
@@ -56,7 +74,7 @@ export default {
   height: 100%;
 
   #editor {
-    height: calc(50%);
+    height: calc(100% - #{$header-height});
   }
 }
 </style>

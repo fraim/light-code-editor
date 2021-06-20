@@ -1,6 +1,6 @@
-import { createStore } from 'vuex'
+import {createStore} from 'vuex'
 
-import { appModule } from './modules'
+import {appModule} from './modules'
 
 export default createStore({
   modules: {

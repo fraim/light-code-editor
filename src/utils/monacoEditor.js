@@ -1,7 +1,8 @@
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.main';
 import {THEME} from '@/constants/monacoEditor'
 
 export const editor = monaco.editor
+export let editorInstance = null
 
 export function monacoSetConfiguration() {
   monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
@@ -19,7 +20,7 @@ export function monacoSetConfiguration() {
   });
 }
 
-export function init({container, language, theme, onDidChangeModelContent}) {
+export function initEditor({container, language, theme}) {
   monacoSetConfiguration()
 
   editor.defineTheme('light', THEME.light)
@@ -27,25 +28,24 @@ export function init({container, language, theme, onDidChangeModelContent}) {
 
   editor.setTheme(theme)
 
-  const standaloneCodeEditor = editor.create(container, {
+  editorInstance = editor.create(container, {
     language,
     minimap: {
       enabled: false
     },
     automaticLayout: true,
     contextmenu: false,
+    readOnly: true,
   })
-
-  standaloneCodeEditor.onDidChangeModelContent(onDidChangeModelContent.bind(standaloneCodeEditor))
-
-  return standaloneCodeEditor
 }
 
 export function changeTheme(theme) {
   editor.setTheme(theme)
 }
 
-export function changeLanguage(model, language) {
-  editor.setModelLanguage(model, language);
+export function changeLanguage(language) {
+  if(editorInstance) {
+    editor.setModelLanguage(editorInstance.getModel(), language);
+  }
 }
 
